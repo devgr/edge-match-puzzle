@@ -1,0 +1,14 @@
+{
+  "name": "puzzle",
+  "version": "1.0.0",
+  "description": "solves puzzle problem",
+  "main": "puzzle.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ryann.chandler@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
+}
