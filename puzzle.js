@@ -20,6 +20,9 @@ card.prototype.getImage = function(place){
             // orientation 2 top = image2
             // orientation 3 top = image 3
             // orientation 4 top = image 4
+/*
+            return this['image'+this.orientation];
+*/
             switch(this.orientation){
                 case 1:
                     return this.image1;
@@ -43,6 +46,10 @@ card.prototype.getImage = function(place){
             // orientation 2 bottom = image 4
             // 3 bottom = image 1
             // 4 bottom = image 2
+/*
+            return card_map.bottom['image'+this.orientation];
+*/
+
             switch (this.orientation) {
                 case 1:
                     return this.image3;
@@ -77,7 +84,7 @@ card.prototype.getImage = function(place){
                     return this.image2;
                     break;
                 case 4:
-                    return this.image4;
+                    return this.image3;
                     break;
                 default:
                     // error
@@ -199,7 +206,8 @@ var cardCreation = function(){
     }
 })();*/
 
-function printSolution(){
+function printSolution(grid){
+    console.log('------ Solution : ', numberOfSolutions, ' ------');
     for(var row = 0; row < 3; row++){
         for(var col = 0; col < 3; col++){
             var card = grid[row][col];
@@ -211,11 +219,12 @@ function printSolution(){
     console.log('Number of Comparisons: ', comparisons);
 }
 
-function solver(curRow, curCol, deck){
+function solver(curRow, curCol, deck, grid){
     if(deck.length === 0){
         console.log('Solution Found.');
         solutionFound = true;
-        printSolution();
+        numberOfSolutions++;
+        printSolution(grid);
         return;
     }
 
@@ -226,7 +235,7 @@ function solver(curRow, curCol, deck){
         var cardToFit = deck[card];
         // For each orientation of the card
         for(var orientation = 1; orientation < 5; orientation++) {
-           /* if(solutionFound){
+            /*if(solutionFound){
                 return;
             }*/
             // re-set the card orientation
@@ -235,7 +244,7 @@ function solver(curRow, curCol, deck){
             // is this the first card?
             if(curRow === 0 && curCol === 0){
                 grid[curRow][curCol] = cardToFit;
-                solver(curRow, curCol + 1, getAvailableCards(deck, cardToFit));
+                solver(curRow, curCol + 1, getAvailableCards(deck, cardToFit), grid);
             }
             // Check to see if the card fits
             else {
@@ -252,22 +261,22 @@ function solver(curRow, curCol, deck){
                     nextCol = curCol;
                     nextRow = curRow;
                 }
-                if (cardFits( cardToFit, prevRow, prevCol, nextCol, nextRow)) {
+                if (cardFits( cardToFit, prevRow, prevCol, nextCol, nextRow, grid)) {
                     grid[nextRow][nextCol] = cardToFit;
 
-                    solver(nextRow, nextCol+1, getAvailableCards(deck, cardToFit));
+                    solver(nextRow, nextCol+1, getAvailableCards(deck, cardToFit), grid);
                 }
             }
         }
     }
 }
 
-function cardFits(cardToFit, curRow, curCol, nextCol, nextRow){
+function cardFits(cardToFit, prevCardRow, prevCardCol, nextCol, nextRow, grid){
 
     comparisons++;
     // We are on the top row and only need to match left side
-    if (curRow === 0 && nextRow < 1) {
-        var currentCard = grid[curRow][curCol];
+    if (prevCardRow === 0 && nextRow === 0) {
+        var currentCard = grid[prevCardRow][prevCardCol];
         // get the current cards right image
         var curImage = currentCard.getImage('right');
         var nextImage = cardToFit.getImage('left');
@@ -276,7 +285,7 @@ function cardFits(cardToFit, curRow, curCol, nextCol, nextRow){
     } else {
         if(nextCol === 0){
             // we only need to match the top;
-            var topCard = grid[curRow][0];
+            var topCard = grid[prevCardRow][0];
             var curImage = topCard.getImage('bottom');
             var nextImage = cardToFit.getImage('top');
 
@@ -306,6 +315,7 @@ function getAvailableCards(deck, cardToFit){
     return cards;
 }
 
+var numberOfSolutions = 0;
 var comparisons = 0;
 var grid = [[],[],[]];
 var curRow = 0;
@@ -314,4 +324,4 @@ var originalCardList = new cardCreation();
 var solutionFound = false;
 
 // pass in the current card so recursive function not only handles next cards but also rotations.
-solver( curRow, curCol, originalCardList);
+solver( curRow, curCol, originalCardList, grid);
