@@ -1,0 +1,27 @@
+{
+  "name": "Edge-Match Puzzle Solver",
+  "homepage": "https://github.com/rechandler/edge-match-puzzle",
+  "description": "User Interface to help solve edge-match puzzles",
+  "main": "app.js",
+  "keywords": [
+    "edge-match",
+    "puzzle",
+    "solver"
+  ],
+  "authors": [
+    "ryann chandler <ryann.chandler@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "^1.5.6",
+    "angular-material": "^1.0.9",
+    "bootstrap": "^3.3.6"
+  }
+}

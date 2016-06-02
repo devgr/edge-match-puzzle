@@ -1,0 +1,38 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="style/bootstrap-material-design.css" />
+    <link rel="stylesheet" href="style/style.css" />
+
+</head>
+<body ng-app="edgeMatch" ng-controller="edgeMatchController as vm" ng-cloak>
+<div id="content" class="container">
+    <div class="panel">
+        <div id="header" class="panel-body">
+            <h1>Edge-Match Puzzle Solver</h1>
+
+            <p>A simple UI to solve Edge-Match Puzzles</p>
+
+            <p><a class="btn btn-primary btn-lg">Learn more</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    $.material.init();
+</script>
+</body>
+
+<script src="bower_components/angular/angular.js"></script>
+<script src="bower_components/angular-material/angular-material.js"></script>
+<script src="bower_components/angular-animate/angular-animate.js"></script>
+<script src="bower_components/angular-aria/angular-aria.js"></script>
+<script src="bower_components/angular-messages/angular-messages.js"></script>
+
+<script src="app.js"></script>
+<script src="edgeMatch/controller.js"></script>
+</html>
