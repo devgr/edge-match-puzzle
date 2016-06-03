@@ -2,8 +2,8 @@
 #include <vector>
 #include <stdlib.h>
 #include <time.h>
+#include <string>
 using namespace std;
-#define N 3
 #define RIGHT 0
 #define BOTTOM 1
 #define LEFT 2
@@ -17,22 +17,44 @@ struct card{
 
 card* randomPuzzle(int n);
 int friendlyValue(char v);
+string twoCharValue(char v);
 void printDeck(card* deck, int n);
+void printDeckJSON(card* deck, int n);
+void printDeckString(card* deck, int n);
 card* copyDeck(card* deck, int n);
 void scrambleDeck(card* deck, int n);
 
-int main(){
+int main(int argc, char *argv[]){
 	srand(time(NULL));
+	bool doScramble = false;
+	bool printJSON = false;
+	bool printPretty = false;
+	int n = 3;
 
-	card* deck = randomPuzzle(N);
+	for(int i = 1; i < argc; i++){
+		if(strcmp(argv[i], "-scramble") == 0)
+			doScramble = true;
+		else if(strcmp(argv[i], "-json") == 0)
+			printJSON = true;
+		else if(strcmp(argv[i], "-pretty") == 0)
+			printPretty = true;
+		else if(strcmp(argv[i], "-n") == 0)
+			n = stoi(argv[i + 1]);
+	}
 
-	printDeck(deck, N);
+	card* deck = randomPuzzle(n);
 
-	card* originalDeck = copyDeck(deck, N);
+	if(doScramble)
+		scrambleDeck(deck, n);
 
-	scrambleDeck(deck, N);
+	if(printPretty)
+		printDeck(deck, n);
 
-	printDeck(deck, N);
+	if(printJSON)
+		printDeckJSON(deck, n);
+
+	if(!printPretty && !printJSON)
+		printDeckString(deck, n);
 	
 	return 0;
 }
@@ -68,11 +90,25 @@ int friendlyValue(char v){
 		val++;
 	return val;
 }
+string twoCharValue(char v){
+	string result = "";
+	int val = (int)v;
+	if(val >= 0){
+		val++;
+		result += to_string(val) + "+";
+	}
+	if(val < 0){
+		val = -val;
+		result += to_string(val) + "-";
+	}
+	return result;
+}
 
 void printDeck(card* deck, int n){
-	for(int i = 0; i < N; i++){
-		for(int j = 0; j < N; j++){
-			int idx = i * N + j;
+	for(int i = 0; i < n; i++){
+		cout << endl;
+		for(int j = 0; j < n; j++){
+			int idx = i * n + j;
 			cout << "id " << deck[idx].id << " rotation " << deck[idx].rotation << endl;
 			cout << "values (right, bottom, left, top) ";
 			for(int k = 0; k < 4; k++)
@@ -80,6 +116,32 @@ void printDeck(card* deck, int n){
 			cout << endl << endl;
 		}
 		cout << "-----" << endl;
+	}
+}
+void printDeckJSON(card* deck, int n){
+	cout << "[";
+	for(int i = 0, len = n * n; i < len; i++){
+		if(i != 0)
+			cout << ",";
+		cout << "[";
+			for(int k = 0; k < 4; k++){
+				if(k != 0)
+					cout << ",";
+				int rotate = (k - deck[i].rotation + 4) % 4;
+				cout << friendlyValue(deck[i].values[rotate]);
+			}
+		cout << "]";
+	}
+	cout << "]";
+}
+void printDeckString(card* deck, int n){
+	for(int i = 0, len = n * n; i < len; i++){
+		if(i != 0)
+			cout << ",";
+		for(int k = 0; k < 4; k++){
+			int rotate = (k - deck[i].rotation + 4) % 4;
+			cout << twoCharValue(deck[i].values[rotate]);
+		}
 	}
 }
 
