@@ -15,6 +15,9 @@ struct card{
 	short rotation;
 	char values[4];
 };
+struct vals{
+	char values[4];
+};
 struct match{
 	short id;
 	short side;
@@ -35,6 +38,149 @@ void scrambleDeck(card* deck, int n);
 
 // helper
 vector<string> split(const string &s, char delim);
+
+
+
+class solver{
+protected: 
+	// all read only after initialization
+	vals* deck;
+	int n;
+	vector<match>* sideMatches;
+	vector<match>** cornerMatches;
+
+	void recur(match* solution, int position, vector<bool>& used){
+		if(position == n){
+			// WOOO!! We made it!
+			printSolution(solution);
+			return;
+		}
+		// where I left off
+		
+
+		if(position >= n && (position % n) > 0){ // need both left and up
+			vals curr = deck[solution[position].id];
+			vals upCard = deck[solution[position - n + 1].id];
+			char needLeft = ~curr.values[(RIGHT + solution[position].side + 4) % 4];
+			char needUp = ~upCard.values[(BOTTOM + solution[position].side + 4) % 4];
+
+
+		}
+		else if(position < n){
+			vals curr = deck[solution[position].id];
+			char need = ~curr.values[(RIGHT + solution[position].side + 4) % 4];
+
+			vector<match> matchVec = sideMatches[need + 4];
+			bool matchFound = false;
+			// instead of starting from 0, need to start from saved position
+			for(int m = 0, ml = matchVec.size(); m < ml; m++){
+				if(!used[matchVec[m].id]){
+					// found so add to solution
+					matchFound = true;
+					used[matchVec[m].id] = true;
+					solution[position + 1].id = matchVec[m].id;
+					solution[position + 1].side = (LEFT - matchVec[m].side + 4) % 4;
+					return recur(solution, position + 1, used);
+				}
+			}
+		}
+		else{
+			vals upCard = deck[solution[position - n + 1].id];
+			char need = ~upCard.values[(BOTTOM + solution[position].side + 4) % 4];
+
+
+			vector<match> matchVec = sideMatches[need + 4];
+
+		}
+	}
+
+	void precalcSides(){
+		sideMatches = new vector<match>[8];
+		for(int i = 0, len = n * n; i < len; i++){ // loop through deck
+			for(int v = 0; v < 4; v++){ // loop through sides
+				int idx = deck[i].values[v]+4; // the +4 is the magic number
+				sideMatches[idx].push_back(match());
+				sideMatches[idx].back().id = i;
+				sideMatches[idx].back().side = v; // what side is it, relative to a 0 card rotation? 
+					// when matching, set card rotation to (NEEDED - side + 4) % 4
+			}
+		}
+	}
+	void precalcCorners(){
+		cornerMatches = new vector<match>*[8];
+		for(int a = 0; a < 8; a++){
+			cornerMatches[a] = new vector<match>[8];
+		}
+
+		for(int i = 0, len = n * n; i < len; i++){ // loop through deck
+			for(int side1 = 0; side1 < 4; side1++){ // loop through sides
+				int side2 = (side1 + 1) % 4;
+				int row = deck[i].values[side1]+4; // the +4 is the magic number
+				int col = deck[i].values[side2]+4;
+
+				cornerMatches[row][col].push_back(match());
+				cornerMatches[row][col].back().id = i;
+				cornerMatches[row][col].back().side = side1; // have to figure out rotation differently because corner
+			}
+		}
+	}
+
+	void printSolution(const match* solution){
+		// critical section
+		cout << "Wooooo!";
+	}
+
+
+
+public:
+	solver(const card* cardArray, int width): n(width){
+		// make a copy of the values since the solver uses a different structure than the generator
+		deck = new vals[width * width];
+		for(int i = 0, len = width * width; i < len; i++){
+			short r = cardArray[i].rotation;
+			deck[i].values[(0 + r ) % 4] = cardArray[i].values[0];
+			deck[i].values[(1 + r ) % 4] = cardArray[i].values[1];
+			deck[i].values[(2 + r ) % 4] = cardArray[i].values[2];
+			deck[i].values[(3 + r ) % 4] = cardArray[i].values[3];
+		}
+	}
+	~solver(){
+		delete[] deck;
+		// etc.
+	}
+
+	void solve(){
+		precalcSides(); // don't worry about cleaning up memory because the program just quits after this!
+		precalcCorners();
+
+		// if doing a parallel outer for loop, have these per thread:
+		match* solution = new match[n * n];
+		vector<bool> used(n * n);
+
+		// try every card in every rotation as the starting piece.
+		for(int c = 0, len = n * n; c < len; c++){
+			vals curr = deck[c];
+			for(int r = 0; r < 4; r++){
+				int position = 0; // check base cases for success
+				// add current card to the solution
+				solution[position].id = c;
+				solution[position].side = r;
+			
+				// mark the card as used in the used bitarray
+				used[c] = true;
+
+				recur(solution, position, used);
+
+
+				// reset
+				fill(used.begin(), used.end(), false);
+			}
+		}
+	}
+
+
+	
+};
 
 
 int main(int argc, char *argv[]){
@@ -61,9 +207,10 @@ int main(int argc, char *argv[]){
 		deck = parseInput(input, n);
 	}
 	
-	solve(deck, n);
+	solver puzzler(deck, n);
+	puzzler.solve();
 
-	printDeckString(deck, n);
+	//printDeckString(deck, n);
 	
 	return 0;
 }
@@ -93,44 +240,6 @@ card* parseInput(const string in, int n){
 	return deck;
 }
 
-
-void solve(card* deck, int n){
-
-}
-
-
-vector<match>* precalcSides(const card* deck, int n){
-	auto calcs = new vector<match>[8];
-	for(int i = 0, len = n * n; i < len; i++){ // loop through deck
-		for(int v = 0; v < 4; v++){ // loop through sides
-			int idx = deck[i].values[v]+4; // the +4 is the magic number
-			calcs[idx].push_back(match());
-			calcs[idx].back().id = deck[i].id;
-			calcs[idx].back().side = v; // what side is it, relative to a 0 card rotation? 
-				// when matching, set card rotation to (NEEDED - side + 4) % 4
-		}
-	}
-	return calcs;
-}
-vector<match>** precalcCorners(const card* deck, int n){
-	auto calcs = new vector<match>*[8];
-	for(int a = 0; a < 8; a++){
-		calcs[a] = new vector<match>[8];
-	}
-
-	for(int i = 0, len = n * n; i < len; i++){ // loop through deck
-		for(int side1 = 0; side1 < 4; side1++){ // loop through sides
-			int side2 = (side1 + 1) % 4;
-			int row = deck[i].values[side1]+4; // the +4 is the magic number
-			int col = deck[i].values[side2]+4;
-
-			calcs[row][col].push_back(match());
-			calcs[row][col].back().id = deck[i].id;
-			calcs[row][col].back().side = side1; // have to figure out rotation differently because corner
-		}
-	}
-	return calcs;
-}
 
 
 // Helper functions borrowed from PuzzleGenerator ---------------------------
