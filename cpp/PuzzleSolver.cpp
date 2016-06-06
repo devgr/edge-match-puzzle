@@ -4,11 +4,15 @@
 #include <time.h>
 #include <string>
 #include <sstream>
+
 using namespace std;
+
 #define RIGHT 0
 #define BOTTOM 1
 #define LEFT 2
 #define TOP 3
+
+#define NUM_IMAGES 4
 
 struct card{
 	short id;
@@ -45,52 +49,68 @@ class solver{
 protected: 
 	// all read only after initialization
 	vals* deck;
-	int n;
+	const int n;
 	vector<match>* sideMatches;
 	vector<match>** cornerMatches;
 
 	void recur(match* solution, int position, vector<bool>& used){
-		if(position == n){
+		if(position == n * n){
 			// WOOO!! We made it!
 			printSolution(solution);
 			return;
 		}
-		// where I left off
 		
+		short matched = -1;
+		if(position < n){ // top row
+			vals prev = deck[solution[position - 1].id];
+			char need = ~prev.values[(RIGHT + solution[position - 1].side + 4) % 4];
 
-		if(position >= n && (position % n) > 0){ // need both left and up
-			vals curr = deck[solution[position].id];
-			vals upCard = deck[solution[position - n + 1].id];
-			char needLeft = ~curr.values[(RIGHT + solution[position].side + 4) % 4];
-			char needUp = ~upCard.values[(BOTTOM + solution[position].side + 4) % 4];
-
-
-		}
-		else if(position < n){
-			vals curr = deck[solution[position].id];
-			char need = ~curr.values[(RIGHT + solution[position].side + 4) % 4];
-
-			vector<match> matchVec = sideMatches[need + 4];
-			bool matchFound = false;
-			// instead of starting from 0, need to start from saved position
+			vector<match> matchVec = sideMatches[need + NUM_IMAGES];
 			for(int m = 0, ml = matchVec.size(); m < ml; m++){
 				if(!used[matchVec[m].id]){
 					// found so add to solution
-					matchFound = true;
-					used[matchVec[m].id] = true;
-					solution[position + 1].id = matchVec[m].id;
-					solution[position + 1].side = (LEFT - matchVec[m].side + 4) % 4;
-					return recur(solution, position + 1, used);
+					matched = matchVec[m].id;
+					used[matched] = true;
+					solution[position].id = matched;
+					solution[position].side = (LEFT - matchVec[m].side + 4) % 4;
+					recur(solution, position + 1, used); // don't return here because we want to find all possible solutions
+					used[matched] = false; // un use a card
 				}
 			}
 		}
-		else{
-			vals upCard = deck[solution[position - n + 1].id];
-			char need = ~upCard.values[(BOTTOM + solution[position].side + 4) % 4];
+		else if((position % n) > 0){ // need both left and up
+			vals prev = deck[solution[position - 1].id];
+			vals upCard = deck[solution[position - n].id];
+			char needLeft = ~prev.values[(RIGHT + solution[position - 1].side + 4) % 4];
+			char needUp = ~upCard.values[(BOTTOM + solution[position - n].side + 4) % 4];
 
+			vector<match> matchVec = cornerMatches[needLeft + NUM_IMAGES][needUp + NUM_IMAGES];
+			for(int m = 0, ml = matchVec.size(); m < ml; m++){
+				if(!used[matchVec[m].id]){
+					matched = matchVec[m].id;
+					used[matched] = true;
+					solution[position].id = matched;
+					solution[position].side = (LEFT - matchVec[m].side + 4) % 4;
+					recur(solution, position + 1, used);
+					used[matched] = false;
+				}
+			}
+		}
+		else{ // left column
+			vals upCard = deck[solution[position - n].id];
+			char need = ~upCard.values[(BOTTOM + solution[position - n].side + 4) % 4];
 
-			vector<match> matchVec = sideMatches[need + 4];
-
+			vector<match> matchVec = sideMatches[need + NUM_IMAGES];
+			for(int m = 0, ml = matchVec.size(); m < ml; m++){
+				if(!used[matchVec[m].id]){
+					matched = matchVec[m].id;
+					used[matched] = true;
+					solution[position].id = matched;
+					solution[position].side = (TOP - matchVec[m].side + 4) % 4;
+					recur(solution, position + 1, used);
+					used[matched] = false;
+				}
+			}
 		}
 	}
 
@@ -98,7 +118,7 @@ protected:
 		sideMatches = new vector<match>[8];
 		for(int i = 0, len = n * n; i < len; i++){ // loop through deck
 			for(int v = 0; v < 4; v++){ // loop through sides
-				int idx = deck[i].values[v]+4; // the +4 is the magic number
+				int idx = deck[i].values[v]+NUM_IMAGES; // the +4 is the magic number
 				sideMatches[idx].push_back(match());
 				sideMatches[idx].back().id = i;
 				sideMatches[idx].back().side = v; // what side is it, relative to a 0 card rotation? 
@@ -115,8 +135,8 @@ protected:
 		for(int i = 0, len = n * n; i < len; i++){ // loop through deck
 			for(int side1 = 0; side1 < 4; side1++){ // loop through sides
 				int side2 = (side1 + 1) % 4;
-				int row = deck[i].values[side1]+4; // the +4 is the magic number
-				int col = deck[i].values[side2]+4;
+				int row = deck[i].values[side1]+NUM_IMAGES; // the +4 is the magic number
+				int col = deck[i].values[side2]+NUM_IMAGES;
 
 				cornerMatches[row][col].push_back(match());
 				cornerMatches[row][col].back().id = i;
@@ -150,7 +170,7 @@ public:
 	}
 
 	void solve(){
-		precalcSides(); // don't worry about cleaning up memory because the program just quits after this!
+		precalcSides();
 		precalcCorners();
 
 		// if doing a parallel outer for loop, have these per thread:
@@ -160,21 +180,17 @@ public:
 		// try every card in every rotation as the starting piece.
 		for(int c = 0, len = n * n; c < len; c++){
 			vals curr = deck[c];
+			// add current card to the solution 
+			// mark the card as used in the used bitarray
+			solution[0].id = c;
+			used[c] = true;
+
 			for(int r = 0; r < 4; r++){
-				int position = 0; // check base cases for success
-				// add current card to the solution
-				solution[position].id = c;
-				solution[position].side = r;
-			
-				// mark the card as used in the used bitarray
-				used[c] = true;
-
-				recur(solution, position, used);
-
-
-				// reset
-				fill(used.begin(), used.end(), false);
+				solution[0].side = r;
+				recur(solution, 1, used);
 			}
+
+			used[c] = false;
 		}
 	}
 
@@ -201,8 +217,9 @@ int main(int argc, char *argv[]){
 	else{
 		string input;
 		// Test data:
-		input = "4+1-2-1+,1-2+4-1+,2+4-1+1-,3+4+2-1+,2+2+3-2-,3+4+2-4+,1-4+4-4-,4-2-1+2-,2+1+4+4-"; // solved order
-		//input = "1-3+1-1+,4+4+1+2+,3-4+4-4+,1-4+3-3-,1+4-1+4-,2+1+1-4-,4-2+3+4-,1-3+4+4+,3-3-1+1-"; // scrambled
+		//input = "4+1-2-1+,1-2+4-1+,2+4-1+1-,3+4+2-1+,2+2+3-2-,3+4+2-4+,1-4+4-4-,4-2-1+2-,2+1+4+4-"; // solved order
+		input = "1-3+1-1+,4+4+1+2+,3-4+4-4+,1-4+3-3-,1+4-1+4-,2+1+1-4-,4-2+3+4-,1-3+4+4+,3-3-1+1-"; // scrambled
+		//input = "1+3+2+4+,1-3-2-4-,4+3-4+2-,4-2-3-1-,3+1+4+2+,3+1-3-2-,2-4-3+1+,4-2+1-1+,3-2+4-1-";
 		//cin >> input;
 		deck = parseInput(input, n);
 	}
