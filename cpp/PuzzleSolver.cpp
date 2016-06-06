@@ -52,6 +52,10 @@ protected:
 	const int n;
 	vector<match>* sideMatches;
 	vector<match>** cornerMatches;
+	short leftRotation[4]; // counter-clockwise!
+	short topRotation[4];
+	int comparisons;
+
 
 	void recur(match* solution, int position, vector<bool>& used){
 		if(position == n * n){
@@ -67,12 +71,13 @@ protected:
 
 			vector<match> matchVec = sideMatches[need + NUM_IMAGES];
 			for(int m = 0, ml = matchVec.size(); m < ml; m++){
+				comparisons++;
 				if(!used[matchVec[m].id]){
 					// found so add to solution
 					matched = matchVec[m].id;
 					used[matched] = true;
 					solution[position].id = matched;
-					solution[position].side = (LEFT - matchVec[m].side + 4) % 4;
+					solution[position].side = leftRotation[matchVec[m].side]; //(LEFT + matchVec[m].side + 4) % 4;
 					recur(solution, position + 1, used); // don't return here because we want to find all possible solutions
 					used[matched] = false; // un use a card
 				}
@@ -86,11 +91,13 @@ protected:
 
 			vector<match> matchVec = cornerMatches[needLeft + NUM_IMAGES][needUp + NUM_IMAGES];
 			for(int m = 0, ml = matchVec.size(); m < ml; m++){
+				comparisons++;
 				if(!used[matchVec[m].id]){
 					matched = matchVec[m].id;
 					used[matched] = true;
 					solution[position].id = matched;
-					solution[position].side = (LEFT - matchVec[m].side + 4) % 4;
+					// does it work to only consider the left rotation?
+					solution[position].side = leftRotation[matchVec[m].side]; //(LEFT + matchVec[m].side + 4) % 4;
 					recur(solution, position + 1, used);
 					used[matched] = false;
 				}
@@ -102,11 +109,12 @@ protected:
 
 			vector<match> matchVec = sideMatches[need + NUM_IMAGES];
 			for(int m = 0, ml = matchVec.size(); m < ml; m++){
+				comparisons++;
 				if(!used[matchVec[m].id]){
 					matched = matchVec[m].id;
 					used[matched] = true;
 					solution[position].id = matched;
-					solution[position].side = (TOP - matchVec[m].side + 4) % 4;
+					solution[position].side = topRotation[matchVec[m].side]; //(TOP + matchVec[m].side + 4) % 4;
 					recur(solution, position + 1, used);
 					used[matched] = false;
 				}
@@ -147,13 +155,22 @@ protected:
 
 	void printSolution(const match* solution){
 		// critical section
-		cout << "Wooooo!";
+		for(int i = 0; i < n * n; i++){
+			if(i != 0)
+				cout << ",";
+			cout << solution[i].id << "r" << solution[i].side;
+		}
+		//cout << "\t" << comparisons; // uncomment to see number of comparisons to find that solution
+		cout << endl;
+		comparisons = 0;
 	}
 
 
 
 public:
-	solver(const card* cardArray, int width): n(width){
+	solver(const card* cardArray, int width): 
+		n(width), comparisons(0)
+	{
 		// make a copy of the values since the solver uses a different structure than the generator
 		deck = new vals[width * width];
 		for(int i = 0, len = width * width; i < len; i++){
@@ -163,10 +180,17 @@ public:
 			deck[i].values[(2 + r ) % 4] = cardArray[i].values[2];
 			deck[i].values[(3 + r ) % 4] = cardArray[i].values[3];
 		}
+
+		leftRotation[0] = 2; leftRotation[1] = 3; leftRotation[2] = 0; leftRotation[3] = 1;
+		topRotation[0] = 1; topRotation[1] = 2; topRotation[2] = 3; topRotation[3] = 0;
 	}
 	~solver(){
 		delete[] deck;
-		// etc.
+		delete[] sideMatches;
+		for(int a = 0; a < 8; a++){
+			delete[] cornerMatches[a];
+		}
+		delete[] cornerMatches;
 	}
 
 	void solve(){
@@ -192,6 +216,8 @@ public:
 
 			used[c] = false;
 		}
+
+		delete solution;
 	}
 
 
@@ -217,10 +243,10 @@ int main(int argc, char *argv[]){
 	else{
 		string input;
 		// Test data:
-		//input = "4+1-2-1+,1-2+4-1+,2+4-1+1-,3+4+2-1+,2+2+3-2-,3+4+2-4+,1-4+4-4-,4-2-1+2-,2+1+4+4-"; // solved order
-		input = "1-3+1-1+,4+4+1+2+,3-4+4-4+,1-4+3-3-,1+4-1+4-,2+1+1-4-,4-2+3+4-,1-3+4+4+,3-3-1+1-"; // scrambled
-		//input = "1+3+2+4+,1-3-2-4-,4+3-4+2-,4-2-3-1-,3+1+4+2+,3+1-3-2-,2-4-3+1+,4-2+1-1+,3-2+4-1-";
-		//cin >> input;
+		//input = "4+1-2-1+,1-2+4-1+,2+4-1+1-,3+4+2-1+,2+2+3-2-,3+4+2-4+,1-4+4-4-,4-2-1+2-,2+1+4+4-"; // random puzzle solved order
+		//input = "1-3+1-1+,4+4+1+2+,3-4+4-4+,1-4+3-3-,1+4-1+4-,2+1+1-4-,4-2+3+4-,1-3+4+4+,3-3-1+1-"; // another random puzzle scrambled
+		//input = "1+3+2+4+,1-3-2-4-,4+3-4+2-,4-2-3-1-,3+1+4+2+,3+1-3-2-,2-4-3+1+,4-2+1-1+,3-2+4-1-"; // the outer space puzzle
+		cin >> input;
 		deck = parseInput(input, n);
 	}
 	

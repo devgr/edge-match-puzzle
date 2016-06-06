@@ -22,3 +22,13 @@ Command line program that randomly generates new valid puzzles, and scrambles th
 * `./PuzzleGenerator -pretty` prints the puzzle in a more human friendly format.
 
 Compilation: `gcc PuzzleGenerator.cpp -o PuzzleGenerator -std=c++11`
+
+### PuzzleSolver.cpp
+Command line program that takes in a puzzle from standard input and solves it. Usage:
+
+* `./PuzzleSolver` takes in a 3x3 puzzle from standard input, in the default format that is output by the PuzzleGenerator. Outputs a solution (one per line) to standard out, with this format:
+	* `0r1,1r3,4r0...` where the first number is the index of the card from the input, and the number after the r is the number of _counter-clockwise_ turns to rotate the card.
+* `./PuzzleGenerator -scramble | ./PuzzleSolver`
+* `./PuzzleSolver -n 4` accept a puzzle of a larger size.
+
+Compilation: `gcc PuzzleSolver.cpp -o PuzzleSolver -std=c++11`
