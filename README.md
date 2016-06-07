@@ -31,4 +31,6 @@ Command line program that takes in a puzzle from standard input and solves it. U
 * `./PuzzleGenerator -scramble | ./PuzzleSolver`
 * `./PuzzleSolver -n 4` accept a puzzle of a larger size.
 
-Compilation: `gcc PuzzleSolver.cpp -o PuzzleSolver -std=c++11`
+Compilation Linux / Mac: `gcc PuzzleSolver.cpp -o PuzzleSolver -std=c++11 -fopenmp`
+
+Compilation Visual Studio: https://msdn.microsoft.com/en-us/library/fw509c3b.aspx

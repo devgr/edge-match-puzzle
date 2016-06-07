@@ -4,6 +4,7 @@
 #include <time.h>
 #include <string>
 #include <sstream>
+#include <omp.h>
 
 using namespace std;
 
@@ -13,6 +14,8 @@ using namespace std;
 #define TOP 3
 
 #define NUM_IMAGES 4
+
+#define NUM_THREADS 4
 
 struct card{
 	short id;
@@ -154,15 +157,17 @@ protected:
 	}
 
 	void printSolution(const match* solution){
-		// critical section
-		for(int i = 0; i < n * n; i++){
-			if(i != 0)
-				cout << ",";
-			cout << solution[i].id << "r" << solution[i].side;
+		#pragma omp critical (printing)
+		{
+			for(int i = 0; i < n * n; i++){
+				if(i != 0)
+					cout << ",";
+				cout << solution[i].id << "r" << solution[i].side;
+			}
+			//cout << "\t" << comparisons; // uncomment to see number of comparisons to find that solution
+			cout << endl;
+			comparisons = 0;
 		}
-		//cout << "\t" << comparisons; // uncomment to see number of comparisons to find that solution
-		cout << endl;
-		comparisons = 0;
 	}
 
 
@@ -196,28 +201,34 @@ public:
 	void solve(){
 		precalcSides();
 		precalcCorners();
-
-		// if doing a parallel outer for loop, have these per thread:
-		match* solution = new match[n * n];
-		vector<bool> used(n * n);
+		int size = n * n;
 
 		// try every card in every rotation as the starting piece.
-		for(int c = 0, len = n * n; c < len; c++){
-			vals curr = deck[c];
-			// add current card to the solution 
-			// mark the card as used in the used bitarray
-			solution[0].id = c;
-			used[c] = true;
+		omp_set_dynamic(0);
+		omp_set_num_threads(omp_get_max_threads());
+		#pragma omp parallel
+		{
+			// per thread
+			match* solution = new match[size];
+			vector<bool> used(size);
 
-			for(int r = 0; r < 4; r++){
-				solution[0].side = r;
-				recur(solution, 1, used);
+			#pragma omp for
+			for(int cardNum = 0; cardNum < size; cardNum++){
+				vals curr = deck[cardNum];
+				// add current card to the solution 
+				// mark the card as used in the used bitarray
+				solution[0].id = cardNum;
+				used[cardNum] = true;
+
+				for(int r = 0; r < 4; r++){
+					solution[0].side = r;
+					recur(solution, 1, used);
+				}
+
+				used[cardNum] = false;
 			}
-
-			used[c] = false;
+			delete[] solution;
 		}
-
-		delete solution;
 	}
 
 
@@ -227,6 +238,8 @@ public:
 
 int main(int argc, char *argv[]){
 	srand(time(NULL));
+
+
 	bool generate = false;
 	card* deck;
 	int n = 3;
